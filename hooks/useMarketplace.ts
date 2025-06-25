@@ -6,7 +6,7 @@ import { useWeb3 } from "./useWeb3"
 
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
-  "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, bool active)",
+  "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, address buyer)",
   "function listDataset(string ipfsHash, uint256 price)",
   "function purchaseDataset(uint256 id) payable",
   "function withdraw()",
@@ -21,7 +21,7 @@ interface Dataset {
   price: string
   priceWei: bigint
   seller: string
-  active: boolean
+  buyer: string
 }
 
 export function useMarketplace() {
@@ -31,11 +31,12 @@ export function useMarketplace() {
   const [pendingWithdrawal, setPendingWithdrawal] = useState("0")
 
   const marketplaceAddress = process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS!
+  const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(marketplaceAddress)
 
   const getContract = useCallback(() => {
-    if (!provider || !marketplaceAddress) return null
+    if (!provider || !isValidAddress) return null
     return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || provider)
-  }, [provider, signer, marketplaceAddress])
+  }, [provider, signer, marketplaceAddress, isValidAddress])
 
   const loadDatasets = useCallback(async () => {
     const contract = getContract()
@@ -54,11 +55,11 @@ export function useMarketplace() {
           price: ethers.formatEther(dataset.price),
           priceWei: dataset.price,
           seller: dataset.seller,
-          active: dataset.active,
+          buyer: dataset.buyer,
         })
       }
 
-      setDatasets(datasetsData.filter((d) => d.active))
+      setDatasets(datasetsData.filter((d) => d.buyer === ethers.ZeroAddress))
     } catch (error) {
       console.error("Error loading datasets:", error)
     } finally {

@@ -16,7 +16,7 @@ interface Dataset {
   price: string
   priceWei: bigint
   seller: string
-  active: boolean
+  buyer: string
 }
 
 export default function MarketPage() {

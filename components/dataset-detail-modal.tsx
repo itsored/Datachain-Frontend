@@ -17,7 +17,7 @@ interface Dataset {
   price: string
   priceWei: bigint
   seller: string
-  active: boolean
+  buyer: string
 }
 
 interface DatasetDetailModalProps {
