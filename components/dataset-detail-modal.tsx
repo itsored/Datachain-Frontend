@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ethers } from "ethers"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -81,6 +82,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
   if (!dataset) return null
 
   const isOwner = account?.toLowerCase() === dataset.seller.toLowerCase()
+  const isSold = dataset.buyer !== ethers.ZeroAddress
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,7 +166,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
                 </p>
               </div>
 
-              {!isOwner && account && (
+              {!isOwner && !isSold && account && (
                 <Button onClick={handlePurchase} disabled={purchasing} className="w-full">
                   {purchasing ? (
                     <>
@@ -175,6 +177,10 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
                     `Purchase for ${dataset.price} ETH`
                   )}
                 </Button>
+              )}
+
+              {isSold && !isOwner && (
+                <div className="text-center text-muted-foreground">Dataset already sold</div>
               )}
 
               {isOwner && <div className="text-center text-muted-foreground">You own this dataset</div>}

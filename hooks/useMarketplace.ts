@@ -27,6 +27,7 @@ interface Dataset {
 export function useMarketplace() {
   const { provider, signer, account } = useWeb3()
   const [datasets, setDatasets] = useState<Dataset[]>([])
+  const [allDatasets, setAllDatasets] = useState<Dataset[]>([])
   const [loading, setLoading] = useState(false)
   const [pendingWithdrawal, setPendingWithdrawal] = useState("0")
 
@@ -59,6 +60,7 @@ export function useMarketplace() {
         })
       }
 
+      setAllDatasets(datasetsData)
       setDatasets(datasetsData.filter((d) => d.buyer === ethers.ZeroAddress))
     } catch (error) {
       console.error("Error loading datasets:", error)
@@ -154,6 +156,7 @@ export function useMarketplace() {
 
   return {
     datasets,
+    allDatasets,
     loading,
     pendingWithdrawal,
     listDataset,
