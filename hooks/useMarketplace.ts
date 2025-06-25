@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
 import { useWeb3 } from "./useWeb3"
 
-const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://rpc-amoy.polygon.technology"
+// Use local RPC by default to support development environments
+const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"
+
 
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
