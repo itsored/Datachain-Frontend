@@ -15,6 +15,7 @@ interface Dataset {
   id: number
   ipfsHash: string
   price: string
+  priceWei: bigint
   seller: string
   active: boolean
 }
@@ -60,7 +61,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
 
     setPurchasing(true)
     try {
-      await purchaseDataset(dataset.id, dataset.price)
+      await purchaseDataset(dataset.id, dataset.priceWei)
       toast({
         title: "Purchase Successful",
         description: "Dataset purchased successfully!",

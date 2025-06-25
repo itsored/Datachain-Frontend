@@ -77,6 +77,9 @@ export function useWeb3() {
         isConnecting: false,
         error: null,
       })
+      if (typeof window !== "undefined") {
+        localStorage.setItem("connected", "1")
+      }
       console.log("Connected:", { provider, signer, account, chainId })
     } catch (error: any) {
       setState((prev) => ({
@@ -98,7 +101,27 @@ export function useWeb3() {
       isConnecting: false,
       error: null,
     })
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("connected")
+    }
   }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.ethereum) {
+      const shouldReconnect = localStorage.getItem("connected") === "1"
+      if (shouldReconnect) {
+        // attempt to reconnect silently
+        window.ethereum
+          .request({ method: "eth_accounts" })
+          .then((accounts: string[]) => {
+            if (accounts.length > 0) {
+              connect()
+            }
+          })
+          .catch((err: any) => console.error("Auto connect error:", err))
+      }
+    }
+  }, [connect])
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
