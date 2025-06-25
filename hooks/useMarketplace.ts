@@ -19,6 +19,7 @@ interface Dataset {
   id: number
   ipfsHash: string
   price: string
+  priceWei: bigint
   seller: string
   active: boolean
 }
@@ -51,6 +52,7 @@ export function useMarketplace() {
           id: Number(dataset.id),
           ipfsHash: dataset.ipfsHash,
           price: ethers.formatEther(dataset.price),
+          priceWei: dataset.price,
           seller: dataset.seller,
           active: dataset.active,
         })
@@ -92,12 +94,12 @@ export function useMarketplace() {
   )
 
   const purchaseDataset = useCallback(
-    async (id: number, price: string) => {
+    async (id: number, price: ethers.BigNumberish) => {
       const contract = getContract()
       if (!contract || !signer) throw new Error("Wallet not connected")
 
       const tx = await contract.purchaseDataset(id, {
-        value: ethers.parseEther(price),
+        value: price,
       })
       await tx.wait()
 
