@@ -14,6 +14,7 @@ interface Dataset {
   id: number
   ipfsHash: string
   price: string
+  priceWei: bigint
   seller: string
   active: boolean
 }
