@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ethers } from "ethers"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,8 +61,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
 
     setPurchasing(true)
     try {
-      const price = ethers.parseEther(dataset.price)
-      await purchaseDataset(dataset.id, price)
+      await purchaseDataset(dataset.id, dataset.priceWei)
       toast({
         title: "Purchase Successful",
         description: "Dataset purchased successfully!",
