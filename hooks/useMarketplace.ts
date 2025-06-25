@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
 import { useWeb3 } from "./useWeb3"
 
+const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://rpc-amoy.polygon.technology"
+
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
   "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, address buyer)",
@@ -35,8 +37,9 @@ export function useMarketplace() {
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(marketplaceAddress)
 
   const getContract = useCallback(() => {
-    if (!provider || !isValidAddress) return null
-    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || provider)
+    if (!isValidAddress) return null
+    const readProvider = provider || new ethers.JsonRpcProvider(DEFAULT_RPC)
+    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || readProvider)
   }, [provider, signer, marketplaceAddress, isValidAddress])
 
   const loadDatasets = useCallback(async () => {
@@ -46,9 +49,10 @@ export function useMarketplace() {
     setLoading(true)
     try {
       const count = await contract.datasetCount()
+      const total = Number(count)
       const datasetsData: Dataset[] = []
 
-      for (let i = 1; i <= count; i++) {
+      for (let i = 1; i <= total; i++) {
         const dataset = await contract.datasets(i)
         datasetsData.push({
           id: i,
@@ -148,11 +152,14 @@ export function useMarketplace() {
 
   // Load initial data
   useEffect(() => {
-    if (provider) {
-      loadDatasets()
+    loadDatasets()
+  }, [provider, loadDatasets])
+
+  useEffect(() => {
+    if (provider && account) {
       loadPendingWithdrawal()
     }
-  }, [provider, loadDatasets, loadPendingWithdrawal])
+  }, [provider, account, loadPendingWithdrawal])
 
   return {
     datasets,
