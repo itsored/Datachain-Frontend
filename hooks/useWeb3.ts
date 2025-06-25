@@ -1,5 +1,12 @@
 "use client"
 
+// Fix for TypeScript: declare window.ethereum
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
 
@@ -43,24 +50,21 @@ export function useWeb3() {
       const network = await provider.getNetwork()
       const chainId = Number(network.chainId)
 
-      // Check if we're on the correct network
       if (chainId !== targetChainId) {
         try {
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: `0x${targetChainId.toString(16)}` }],
           })
+          // After switching, re-run connect to update state
+          return connect()
         } catch (switchError: any) {
-          if (switchError.code === 4902) {
-            // Network not added to MetaMask
-            setState((prev) => ({
-              ...prev,
-              error: `Please add ${process.env.NEXT_PUBLIC_NETWORK_NAME} network to MetaMask`,
-              isConnecting: false,
-            }))
-            return
-          }
-          throw switchError
+          setState((prev) => ({
+            ...prev,
+            error: `Please add ${process.env.NEXT_PUBLIC_NETWORK_NAME} network to MetaMask`,
+            isConnecting: false,
+          }))
+          return
         }
       }
 
@@ -73,12 +77,14 @@ export function useWeb3() {
         isConnecting: false,
         error: null,
       })
+      console.log("Connected:", { provider, signer, account, chainId })
     } catch (error: any) {
       setState((prev) => ({
         ...prev,
         error: error.message || "Failed to connect wallet",
         isConnecting: false,
       }))
+      console.error("Connect error:", error)
     }
   }, [targetChainId])
 
@@ -97,10 +103,16 @@ export function useWeb3() {
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
+        console.log("accountsChanged:", accounts);
         if (accounts.length === 0) {
-          disconnect()
+          // Instead of disconnecting immediately, wait a short time and re-check
+          setTimeout(() => {
+            if (window.ethereum.selectedAddress == null) {
+              disconnect();
+            }
+          }, 500); // 0.5s delay
         } else {
-          connect()
+          connect();
         }
       }
 
@@ -117,6 +129,10 @@ export function useWeb3() {
       }
     }
   }, [connect, disconnect])
+
+  useEffect(() => {
+    console.log("Web3 State:", state)
+  }, [state])
 
   return {
     ...state,
