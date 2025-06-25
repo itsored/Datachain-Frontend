@@ -6,7 +6,7 @@ import { useWeb3 } from "./useWeb3"
 
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
-  "function datasets(uint256) view returns (uint256 id, string ipfsHash, uint256 price, address seller, bool active)",
+  "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, bool active)",
   "function listDataset(string ipfsHash, uint256 price)",
   "function purchaseDataset(uint256 id) payable",
   "function withdraw()",
@@ -49,7 +49,7 @@ export function useMarketplace() {
       for (let i = 1; i <= count; i++) {
         const dataset = await contract.datasets(i)
         datasetsData.push({
-          id: Number(dataset.id),
+          id: i,
           ipfsHash: dataset.ipfsHash,
           price: ethers.formatEther(dataset.price),
           priceWei: dataset.price,
