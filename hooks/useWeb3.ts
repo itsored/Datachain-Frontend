@@ -111,14 +111,18 @@ export function useWeb3() {
       const shouldReconnect = localStorage.getItem("connected") === "1"
       if (shouldReconnect) {
         // attempt to reconnect silently
-        window.ethereum
-          .request({ method: "eth_accounts" })
-          .then((accounts: string[]) => {
+        ;(async () => {
+          try {
+            const accounts: string[] = await window.ethereum.request({
+              method: "eth_accounts",
+            })
             if (accounts.length > 0) {
               connect()
             }
-          })
-          .catch((err: any) => console.error("Auto connect error:", err))
+          } catch (err: any) {
+            console.error("Auto connect error:", err)
+          }
+        })()
       }
     }
   }, [connect])
