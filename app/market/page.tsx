@@ -21,11 +21,11 @@ interface Dataset {
 
 export default function MarketPage() {
   const { isConnected } = useWeb3Context()
-  const { datasets, loading } = useMarketplace()
+  const { allDatasets, loading } = useMarketplace()
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
 
-  const filteredDatasets = datasets.filter(
+  const filteredDatasets = allDatasets.filter(
     (dataset) =>
       dataset.ipfsHash.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dataset.seller.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -82,7 +82,11 @@ export default function MarketPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Dataset #{dataset.id}</span>
-                  <Badge variant="secondary">Active</Badge>
+                  {dataset.buyer === "0x0000000000000000000000000000000000000000" ? (
+                    <Badge variant="secondary">Active</Badge>
+                  ) : (
+                    <Badge variant="outline">Sold</Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

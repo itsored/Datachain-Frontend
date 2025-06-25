@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { ethers } from "ethers"
 import { useWeb3 } from "./useWeb3"
 
+// Use local RPC by default to support development environments
+const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"
+
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
   "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, address buyer)",
@@ -27,6 +30,7 @@ interface Dataset {
 export function useMarketplace() {
   const { provider, signer, account } = useWeb3()
   const [datasets, setDatasets] = useState<Dataset[]>([])
+  const [allDatasets, setAllDatasets] = useState<Dataset[]>([])
   const [loading, setLoading] = useState(false)
   const [pendingWithdrawal, setPendingWithdrawal] = useState("0")
 
@@ -34,8 +38,9 @@ export function useMarketplace() {
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(marketplaceAddress)
 
   const getContract = useCallback(() => {
-    if (!provider || !isValidAddress) return null
-    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || provider)
+    if (!isValidAddress) return null
+    const readProvider = provider || new ethers.JsonRpcProvider(DEFAULT_RPC)
+    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || readProvider)
   }, [provider, signer, marketplaceAddress, isValidAddress])
 
   const loadDatasets = useCallback(async () => {
@@ -45,9 +50,10 @@ export function useMarketplace() {
     setLoading(true)
     try {
       const count = await contract.datasetCount()
+      const total = Number(count)
       const datasetsData: Dataset[] = []
 
-      for (let i = 1; i <= count; i++) {
+      for (let i = 1; i <= total; i++) {
         const dataset = await contract.datasets(i)
         datasetsData.push({
           id: i,
@@ -59,6 +65,7 @@ export function useMarketplace() {
         })
       }
 
+      setAllDatasets(datasetsData)
       setDatasets(datasetsData.filter((d) => d.buyer === ethers.ZeroAddress))
     } catch (error) {
       console.error("Error loading datasets:", error)
@@ -146,14 +153,18 @@ export function useMarketplace() {
 
   // Load initial data
   useEffect(() => {
-    if (provider) {
-      loadDatasets()
+    loadDatasets()
+  }, [provider, loadDatasets])
+
+  useEffect(() => {
+    if (provider && account) {
       loadPendingWithdrawal()
     }
-  }, [provider, loadDatasets, loadPendingWithdrawal])
+  }, [provider, account, loadPendingWithdrawal])
 
   return {
     datasets,
+    allDatasets,
     loading,
     pendingWithdrawal,
     listDataset,
