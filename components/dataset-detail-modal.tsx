@@ -11,6 +11,7 @@ import { useReputation } from "@/hooks/useReputation"
 import { useWeb3Context } from "./web3-provider"
 import { Loader2, Star } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { RatingModal } from "@/components/rating-modal"
 
 interface Dataset {
   id: number
@@ -35,26 +36,33 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
 
   const [purchasing, setPurchasing] = useState(false)
   const [sellerReputation, setSellerReputation] = useState(0)
-  const [mockMetadata, setMockMetadata] = useState<any>(null)
+  const [metadata, setMetadata] = useState<any>(null)
+  const [ratingModalOpen, setRatingModalOpen] = useState(false)
+
+  const refreshReputation = () => {
+    if (dataset) {
+      getReputation(dataset.seller).then(setSellerReputation)
+    }
+  }
 
   useEffect(() => {
-    if (dataset) {
-      // Load seller reputation
-      getReputation(dataset.seller).then(setSellerReputation)
+    if (!dataset) return
 
-      // Mock IPFS metadata based on hash
-      const mockData = {
-        name: `Dataset ${dataset.id}`,
-        description: `AI training dataset stored at IPFS hash: ${dataset.ipfsHash}`,
-        category: "Computer Vision",
-        size: "1.2 GB",
-        samples: 10000,
-        format: "JSON",
-        verified: Math.random() > 0.5,
-        tags: ["images", "classification", "labeled"],
+    // Load seller reputation
+    getReputation(dataset.seller).then(setSellerReputation)
+
+    // Fetch real metadata JSON from IPFS
+    ;(async () => {
+      try {
+        const res = await fetch(`https://gateway.pinata.cloud/ipfs/${dataset.ipfsHash}`)
+        if (!res.ok) throw new Error("Failed to fetch metadata")
+        const json = await res.json()
+        setMetadata(json)
+      } catch (err) {
+        console.error("Error fetching metadata", err)
+        setMetadata(null)
       }
-      setMockMetadata(mockData)
-    }
+    })()
   }, [dataset, getReputation])
 
   const handlePurchase = async () => {
@@ -82,6 +90,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
   if (!dataset) return null
 
   const isOwner = account?.toLowerCase() === dataset.seller.toLowerCase()
+  const isBuyer = dataset.buyer.toLowerCase() === account?.toLowerCase()
   const isSold = dataset.buyer !== ethers.ZeroAddress
 
   return (
@@ -92,39 +101,49 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
         </DialogHeader>
 
         <div className="space-y-6">
-          {mockMetadata && (
+          {metadata && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  {mockMetadata.name}
-                  {mockMetadata.verified && <Badge variant="secondary">✓ Verified</Badge>}
+                  {metadata.name || `Dataset #${dataset.id}`}
+                  {metadata.verified && <Badge variant="secondary">✓ Verified</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-muted-foreground">{mockMetadata.description}</p>
+                {metadata.description && <p className="text-muted-foreground">{metadata.description}</p>}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Category:</span> {mockMetadata.category}
-                  </div>
-                  <div>
-                    <span className="font-medium">Size:</span> {mockMetadata.size}
-                  </div>
-                  <div>
-                    <span className="font-medium">Samples:</span> {mockMetadata.samples.toLocaleString()}
-                  </div>
-                  <div>
-                    <span className="font-medium">Format:</span> {mockMetadata.format}
-                  </div>
+                  {metadata.category && (
+                    <div>
+                      <span className="font-medium">Category:</span> {metadata.category}
+                    </div>
+                  )}
+                  {metadata.size && (
+                    <div>
+                      <span className="font-medium">Size:</span> {metadata.size}
+                    </div>
+                  )}
+                  {metadata.samples && (
+                    <div>
+                      <span className="font-medium">Samples:</span> {metadata.samples.toLocaleString()}
+                    </div>
+                  )}
+                  {metadata.format && (
+                    <div>
+                      <span className="font-medium">Format:</span> {metadata.format}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap gap-1">
-                  {mockMetadata.tags.map((tag: string) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+                {metadata.tags && Array.isArray(metadata.tags) && (
+                  <div className="flex flex-wrap gap-1">
+                    {metadata.tags.map((tag: string) => (
+                      <Badge key={tag} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -179,7 +198,33 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
                 </Button>
               )}
 
-              {isSold && !isOwner && (
+              {metadata?.fileCid && (isBuyer || isOwner) && (
+                <Button asChild variant="secondary" className="w-full">
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${metadata.fileCid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Download Dataset
+                  </a>
+                </Button>
+              )}
+
+              {isSold && isBuyer && metadata?.fileCid == null && (
+                <div className="text-center text-muted-foreground">Seller did not attach file</div>
+              )}
+
+              {isSold && isBuyer && metadata?.fileCid && (
+                <div className="text-center text-muted-foreground">Purchased dataset ready for download</div>
+              )}
+
+              {isSold && isBuyer && (
+                <Button variant="secondary" className="w-full" onClick={() => setRatingModalOpen(true)}>
+                  Rate Seller
+                </Button>
+              )}
+
+              {isSold && !isOwner && !isBuyer && (
                 <div className="text-center text-muted-foreground">Dataset already sold</div>
               )}
 
@@ -189,6 +234,13 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
             </CardContent>
           </Card>
         </div>
+
+        <RatingModal
+          sellerAddress={dataset.seller}
+          open={ratingModalOpen}
+          onOpenChange={setRatingModalOpen}
+          onRated={refreshReputation}
+        />
       </DialogContent>
     </Dialog>
   )

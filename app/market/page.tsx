@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { useMarketplace } from "@/hooks/useMarketplace"
 import { useWeb3Context } from "@/components/web3-provider"
 import { DatasetDetailModal } from "@/components/dataset-detail-modal"
-import { Loader2, Search, Database } from "lucide-react"
+import { Loader2, Search, Database, Star } from "lucide-react"
+import { useReputation } from "@/hooks/useReputation"
 
 interface Dataset {
   id: number
@@ -22,8 +23,23 @@ interface Dataset {
 export default function MarketPage() {
   const { isConnected } = useWeb3Context()
   const { allDatasets, loading } = useMarketplace()
+  const { getReputation } = useReputation()
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [reputations, setReputations] = useState<Record<string, number>>({})
+
+  // load reputations once datasets fetched
+  useEffect(() => {
+    ;(async () => {
+      const uniqueSellers = Array.from(new Set(allDatasets.map((d) => d.seller.toLowerCase())))
+      const repEntries = await Promise.all(
+        uniqueSellers.map(async (addr) => [addr, await getReputation(addr)] as [string, number]),
+      )
+      const map: Record<string, number> = {}
+      repEntries.forEach(([addr, rep]) => (map[addr] = rep))
+      setReputations(map)
+    })()
+  }, [allDatasets, getReputation])
 
   const filteredDatasets = allDatasets.filter(
     (dataset) =>
@@ -93,13 +109,21 @@ export default function MarketPage() {
                 <div className="space-y-2">
                   <div className="text-sm">
                     <span className="text-muted-foreground">IPFS Hash:</span>
-                    <p className="font-mono text-xs bg-muted p-1 rounded mt-1">{dataset.ipfsHash}</p>
+                    <p className="font-mono text-xs bg-muted p-1 rounded mt-1 break-all max-w-full truncate" title={dataset.ipfsHash}>
+                      {dataset.ipfsHash}
+                    </p>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">Seller:</span>
                     <p className="font-mono text-xs">
                       {dataset.seller.slice(0, 6)}...{dataset.seller.slice(-4)}
                     </p>
+                    {reputations[dataset.seller.toLowerCase()] != null && (
+                      <div className="flex items-center gap-1 text-amber-500 text-xs mt-1">
+                        <Star className="h-3 w-3 fill-amber-500" />
+                        {reputations[dataset.seller.toLowerCase()]}/5
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -11,9 +11,10 @@ interface RatingModalProps {
   sellerAddress: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onRated?: () => void
 }
 
-export function RatingModal({ sellerAddress, open, onOpenChange }: RatingModalProps) {
+export function RatingModal({ sellerAddress, open, onOpenChange, onRated }: RatingModalProps) {
   const { submitRating, loading } = useReputation()
   const { toast } = useToast()
   const [rating, setRating] = useState(0)
@@ -30,6 +31,7 @@ export function RatingModal({ sellerAddress, open, onOpenChange }: RatingModalPr
       })
       onOpenChange(false)
       setRating(0)
+      onRated?.()
     } catch (error: any) {
       toast({
         title: "Rating Failed",

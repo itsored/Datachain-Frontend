@@ -218,10 +218,9 @@ export default function DashboardPage() {
                           Seller: {purchase.seller.slice(0, 6)}...{purchase.seller.slice(-4)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-bold">{purchase.price} ETH</span>
-                        <Button size="sm" variant="outline" onClick={() => openRatingModal(purchase.seller)}>
-                          <Star className="mr-2 h-4 w-4" />
+                      <div className="text-right space-y-2">
+                        <p className="font-bold">{purchase.price} ETH</p>
+                        <Button size="sm" variant="secondary" onClick={() => openRatingModal(purchase.seller)}>
                           Rate Seller
                         </Button>
                       </div>
@@ -231,10 +230,10 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          <RatingModal sellerAddress={selectedSeller} open={ratingModalOpen} onOpenChange={setRatingModalOpen} />
         </TabsContent>
       </Tabs>
-
-      <RatingModal sellerAddress={selectedSeller} open={ratingModalOpen} onOpenChange={setRatingModalOpen} />
     </div>
   )
 }

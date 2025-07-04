@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { ethers } from "ethers"
 import { useWeb3 } from "./useWeb3"
 
@@ -38,11 +38,36 @@ export function useMarketplace() {
   const marketplaceAddress = process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS!
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(marketplaceAddress)
 
+  // Memoised read-only provider to avoid recreating each render
+  const readProvider = useMemo(() => new ethers.JsonRpcProvider(DEFAULT_RPC), [])
+
+  // Track whether contract code is present at the configured address to avoid BAD_DATA decode errors
+  const codeCheckedRef = useRef<boolean>(false)
+  const isDeployedRef = useRef<boolean>(true)
+
+  useEffect(() => {
+    ;(async () => {
+      if (!isValidAddress) return
+      try {
+        const code = await readProvider.getCode(marketplaceAddress)
+        if (code === "0x") {
+          console.warn("Marketplace contract not deployed at", marketplaceAddress)
+          isDeployedRef.current = false
+        }
+      } catch (err) {
+        console.error("Error checking marketplace contract code:", err)
+        isDeployedRef.current = false
+      } finally {
+        codeCheckedRef.current = true
+      }
+    })()
+  }, [readProvider, marketplaceAddress, isValidAddress])
+
   const getContract = useCallback(() => {
     if (!isValidAddress) return null
-    const readProvider = provider || new ethers.JsonRpcProvider(DEFAULT_RPC)
-    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, signer || readProvider)
-  }, [provider, signer, marketplaceAddress, isValidAddress])
+    if (codeCheckedRef.current && !isDeployedRef.current) return null
+    return new ethers.Contract(marketplaceAddress, MARKETPLACE_ABI, readProvider)
+  }, [readProvider, marketplaceAddress, isValidAddress])
 
   const loadDatasets = useCallback(async () => {
     const contract = getContract()
@@ -90,10 +115,26 @@ export function useMarketplace() {
   const listDataset = useCallback(
     async (ipfsHash: string, priceInEth: string) => {
       const contract = getContract()
-      if (!contract || !signer) throw new Error("Wallet not connected")
+      if (!contract) throw new Error("Marketplace contract not configured")
+      if (!signer) throw new Error("Wallet not connected")
 
+      const writeContract = contract.connect(signer) as any
       const price = ethers.parseEther(priceInEth)
-      const tx = await contract.listDataset(ipfsHash, price)
+
+      let gasLimit: bigint | undefined
+      try {
+        const est = await writeContract.getFunction("listDataset").estimateGas(ipfsHash, price)
+        gasLimit = (est * BigInt(12)) / BigInt(10)
+      } catch (_) {}
+
+      // Static call for revert reason
+      try {
+        await writeContract.getFunction("listDataset").staticCall(ipfsHash, price)
+      } catch (simError: any) {
+        throw new Error(simError?.reason || simError?.message || "listDataset reverted")
+      }
+
+      const tx = await writeContract.getFunction("listDataset").send(ipfsHash, price, gasLimit ? { gasLimit } : {})
       await tx.wait()
 
       // Reload datasets after listing
@@ -105,9 +146,11 @@ export function useMarketplace() {
   const purchaseDataset = useCallback(
     async (id: number, price: ethers.BigNumberish) => {
       const contract = getContract()
-      if (!contract || !signer) throw new Error("Wallet not connected")
+      if (!contract) throw new Error("Marketplace contract not configured")
+      if (!signer) throw new Error("Wallet not connected")
 
-      const tx = await contract.purchaseDataset(id, {
+      const writeContract = contract.connect(signer) as any
+      const tx = await writeContract.purchaseDataset(id, {
         value: price,
       })
       await tx.wait()
@@ -120,9 +163,11 @@ export function useMarketplace() {
 
   const withdraw = useCallback(async () => {
     const contract = getContract()
-    if (!contract || !signer) throw new Error("Wallet not connected")
+    if (!contract) throw new Error("Marketplace contract not configured")
+    if (!signer) throw new Error("Wallet not connected")
 
-    const tx = await contract.withdraw()
+    const writeContract = contract.connect(signer) as any
+    const tx = await writeContract.withdraw()
     await tx.wait()
 
     // Reload pending withdrawal after withdraw

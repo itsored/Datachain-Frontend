@@ -12,6 +12,14 @@ import { useMarketplace } from "@/hooks/useMarketplace"
 import { useWeb3Context } from "@/components/web3-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Upload } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { pinJSONToIPFS, pinFileToIPFS } from "@/lib/pinata"
 
 export default function ListDatasetPage() {
   const { isConnected, account } = useWeb3Context()
@@ -29,6 +37,7 @@ export default function ListDatasetPage() {
     price: "",
   })
   const [loading, setLoading] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,10 +77,18 @@ export default function ListDatasetPage() {
         seller: account,
       }
 
-      // In a real app, this would upload to IPFS
-      const mockIpfsHash = `Qm${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`
+      let fileCid: string | undefined = undefined
+      if (file) {
+        fileCid = await pinFileToIPFS(file)
+      }
 
-      await listDataset(mockIpfsHash, formData.price)
+      // include fileCid if present
+      const metadataWithFile = { ...metadata, fileCid }
+
+      // Upload metadata to IPFS via Pinata
+      const ipfsHash = await pinJSONToIPFS(metadataWithFile)
+
+      await listDataset(ipfsHash, formData.price)
 
       toast({
         title: "Dataset Listed Successfully",
@@ -89,10 +106,32 @@ export default function ListDatasetPage() {
         tags: "",
         price: "",
       })
+      setFile(null)
     } catch (error: any) {
+      // Log the raw error to browser console for easier debugging
+      // eslint-disable-next-line no-console
+      console.error("LIST DATASET RAW ERROR →", error)
+      let message = error?.message || "Failed to list dataset"
+
+      // Provide friendlier feedback for common issues
+      switch (error?.code) {
+        case "ACTION_REJECTED":
+        case 4001: // MetaMask user rejected request
+          message = "Transaction rejected in wallet. Please approve the request to continue."
+          break
+        case "NETWORK_ERROR":
+          message = "Network error: please check your RPC URL or that your node is running."
+          break
+        default:
+          // Attempt to detect JSON-RPC provider startup issue
+          if (message.includes("failed to detect network")) {
+            message = "Could not connect to the configured network. Is your RPC endpoint online?"
+          }
+      }
+
       toast({
         title: "Listing Failed",
-        description: error.message || "Failed to list dataset",
+        description: message,
         variant: "destructive",
       })
     } finally {
@@ -156,26 +195,40 @@ export default function ListDatasetPage() {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-                  placeholder="e.g., Computer Vision"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Computer Vision",
+                    "Natural Language Processing",
+                    "Audio",
+                    "Time Series",
+                    "Tabular",
+                    "Other",
+                  ].map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="format">Format</Label>
-                <Input
-                  id="format"
-                  value={formData.format}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, format: e.target.value }))}
-                  placeholder="e.g., JSON, CSV, Images"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="format">Format</Label>
+              <Input
+                id="format"
+                value={formData.format}
+                onChange={(e) => setFormData((prev) => ({ ...prev, format: e.target.value }))}
+                placeholder="e.g., JSON, CSV, Images"
+              />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -209,6 +262,24 @@ export default function ListDatasetPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, tags: e.target.value }))}
                 placeholder="e.g., images, classification, labeled"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="datasetFile">Dataset File (.zip etc.)</Label>
+              <Input
+                id="datasetFile"
+                type="file"
+                accept=".zip,.csv,.json,.txt,.tar,.gz"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  setFile(f)
+                }}
+              />
+              {file && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
