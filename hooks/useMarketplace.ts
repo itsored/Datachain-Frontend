@@ -5,9 +5,9 @@ import { ethers } from "ethers"
 import { useWeb3 } from "./useWeb3"
 
 // Use local RPC by default to support development environments
-const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"
+// const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"
 
-
+const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL
 const MARKETPLACE_ABI = [
   "function datasetCount() view returns (uint256)",
   "function datasets(uint256) view returns (address seller, string ipfsHash, uint256 price, address buyer)",
@@ -79,16 +79,29 @@ export function useMarketplace() {
       const total = Number(count)
       const datasetsData: Dataset[] = []
 
-      for (let i = 1; i <= total; i++) {
-        const dataset = await contract.datasets(i)
-        datasetsData.push({
-          id: i,
-          ipfsHash: dataset.ipfsHash,
-          price: ethers.formatEther(dataset.price),
-          priceWei: dataset.price,
-          seller: dataset.seller,
-          buyer: dataset.buyer,
-        })
+      // NOTE: Adjust startIdx to 0 if your contract uses 0-based indexing, or 1 if 1-based
+      const startIdx = 1 // <-- change to 0 if needed
+      for (let i = startIdx; i < startIdx + total; i++) {
+        try {
+          // Add a small delay to avoid rate limiting (e.g., 100ms)
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((res) => setTimeout(res, 100))
+          const dataset = await contract.datasets(i)
+          // Defensive: skip if dataset is empty or seller is zero address
+          if (!dataset || dataset.seller === ethers.ZeroAddress) continue
+          datasetsData.push({
+            id: i,
+            ipfsHash: dataset.ipfsHash,
+            price: ethers.formatEther(dataset.price),
+            priceWei: dataset.price,
+            seller: dataset.seller,
+            buyer: dataset.buyer,
+          })
+        } catch (err) {
+          // Log and skip this dataset if it fails
+          console.warn(`Failed to fetch dataset at index ${i}:`, err)
+          continue
+        }
       }
 
       setAllDatasets(datasetsData)
