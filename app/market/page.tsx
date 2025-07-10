@@ -128,7 +128,7 @@ export default function MarketPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{dataset.price} ETH</span>
+                  <span className="text-2xl font-bold">{dataset.price} POL</span>
                   <Button onClick={() => setSelectedDataset(dataset)}>View Details</Button>
                 </div>
               </CardContent>

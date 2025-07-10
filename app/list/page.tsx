@@ -283,7 +283,7 @@ export default function ListDatasetPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price (ETH) *</Label>
+              <Label htmlFor="price">Price (POL) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -302,7 +302,7 @@ export default function ListDatasetPage() {
                   <span className="font-medium">Name:</span> {formData.name || "Not specified"}
                 </p>
                 <p>
-                  <span className="font-medium">Price:</span> {formData.price || "0"} ETH
+                  <span className="font-medium">Price:</span> {formData.price || "0"} POL
                 </p>
                 <p>
                   <span className="font-medium">Category:</span> {formData.category || "Not specified"}

@@ -99,7 +99,7 @@ export default function DashboardPage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingWithdrawal} ETH</div>
+            <div className="text-2xl font-bold">{pendingWithdrawal} POL</div>
             <Button
               onClick={handleWithdraw}
               disabled={withdrawing || Number.parseFloat(pendingWithdrawal) === 0}
@@ -124,7 +124,7 @@ export default function DashboardPage() {
             <Gift className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingRewards} ETH</div>
+            <div className="text-2xl font-bold">{pendingRewards} POL</div>
             <Button
               onClick={handleClaimRewards}
               disabled={rewardsLoading || Number.parseFloat(pendingRewards) === 0}
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                         <p className="text-sm text-muted-foreground font-mono">{dataset.ipfsHash}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">{dataset.price} ETH</p>
+                        <p className="font-bold">{dataset.price} POL</p>
                         <Badge variant="secondary">Active</Badge>
                       </div>
                     </div>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <div className="text-right space-y-2">
-                        <p className="font-bold">{purchase.price} ETH</p>
+                        <p className="font-bold">{purchase.price} POL</p>
                         <Button size="sm" variant="secondary" onClick={() => openRatingModal(purchase.seller)}>
                           Rate Seller
                         </Button>

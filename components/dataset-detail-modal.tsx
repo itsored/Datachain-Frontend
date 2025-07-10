@@ -176,7 +176,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between text-lg">
                 <span>Price:</span>
-                <span className="font-bold">{dataset.price} ETH</span>
+                <span className="font-bold">{dataset.price} POL</span>
               </div>
 
               <div className="text-sm text-muted-foreground">
@@ -193,7 +193,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
                       Purchasing...
                     </>
                   ) : (
-                    `Purchase for ${dataset.price} ETH`
+                    `Purchase for ${dataset.price} POL`
                   )}
                 </Button>
               )}
