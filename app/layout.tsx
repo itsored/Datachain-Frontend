@@ -1,39 +1,27 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import React from "react"
+import Link from "next/link"
+import { ThemeProvider } from "./(providers)/theme-provider"
 import { Web3Provider } from "@/components/web3-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { ConnectWallet } from "@/components/connect-wallet"
-import Link from "next/link"
+import ConnectWallet from "@/components/connect-wallet"
+import MobileNav from "@/components/mobile-nav"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "DataChain AI - Decentralized AI Training Data Marketplace",
-  description: "Buy and sell AI training datasets on the blockchain",
-    generator: 'v0.dev'
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="min-h-screen bg-background">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Web3Provider>
             <div className="min-h-screen bg-background">
               <header className="border-b">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-6">
                     <Link href="/" className="text-2xl font-bold">
                       DataChain AI
                     </Link>
-                    <nav className="flex gap-6">
+
+                    {/* Desktop nav */}
+                    <nav className="hidden md:flex gap-6">
                       <Link href="/market" className="hover:text-primary">
                         Market
                       </Link>
@@ -45,9 +33,17 @@ export default function RootLayout({
                       </Link>
                     </nav>
                   </div>
-                  <ConnectWallet />
+
+                  <div className="flex items-center gap-2">
+                    {/* Mobile nav trigger */}
+                    <MobileNav />
+
+                    {/* Keep ConnectWallet visible on all sizes; it will handle its own layout */}
+                    <ConnectWallet />
+                  </div>
                 </div>
               </header>
+
               <main>{children}</main>
             </div>
             <Toaster />
