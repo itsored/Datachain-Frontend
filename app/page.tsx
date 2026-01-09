@@ -5,17 +5,17 @@ import { Database, Shield, Coins, Users } from "lucide-react"
 
 export default function HomePage() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Decentralized AI Training Data Marketplace</h1>
-        <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="text-center mb-12 md:mb-16">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 px-2">Decentralized AI Training Data Marketplace</h1>
+        <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto px-4">
           Buy and sell high-quality AI training datasets on the blockchain. Transparent, secure, and decentralized.
         </p>
-        <div className="flex gap-4 justify-center">
-          <Button asChild size="lg">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+          <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href="/market">Browse Datasets</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
             <Link href="/list">List Your Data</Link>
           </Button>
         </div>
@@ -63,9 +63,9 @@ export default function HomePage() {
         </Card>
       </div>
 
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+      <div className="text-center px-4">
+        <h2 className="text-xl sm:text-2xl font-bold mb-6 md:mb-4">How It Works</h2>
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto">
           <div>
             <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
               1

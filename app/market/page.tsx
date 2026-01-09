@@ -77,12 +77,12 @@ export default function MarketPage() {
   )
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Dataset Marketplace</h1>
-        <p className="text-muted-foreground mb-6">Discover and purchase high-quality AI training datasets</p>
+    <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 md:mb-4">Dataset Marketplace</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mb-4 md:mb-6">Discover and purchase high-quality AI training datasets</p>
 
-        <div className="relative max-w-md">
+        <div className="relative max-w-md w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search datasets or sellers..."
@@ -94,10 +94,10 @@ export default function MarketPage() {
       </div>
 
       {!isConnected && (
-        <Card className="mb-8">
+        <Card className="mb-6 md:mb-8">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-muted-foreground mb-4">Connect your wallet to purchase datasets</p>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">Connect your wallet to purchase datasets</p>
             </div>
           </CardContent>
         </Card>
@@ -105,47 +105,47 @@ export default function MarketPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading datasets...</span>
+          <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin" />
+          <span className="ml-2 text-sm md:text-base">Loading datasets...</span>
         </div>
       ) : filteredDatasets.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No datasets found</h3>
-              <p className="text-muted-foreground">
+              <Database className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-base md:text-lg font-semibold mb-2">No datasets found</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
                 {searchTerm ? "Try adjusting your search terms" : "Be the first to list a dataset!"}
               </p>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredDatasets.map((dataset) => (
             <Card key={dataset.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{datasetNames[dataset.id] || `Dataset #${dataset.id}`}</span>
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <span className="text-base md:text-lg truncate">{datasetNames[dataset.id] || `Dataset #${dataset.id}`}</span>
                   {dataset.buyer === "0x0000000000000000000000000000000000000000" ? (
-                    <Badge variant="secondary">Active</Badge>
+                    <Badge variant="secondary" className="shrink-0">Active</Badge>
                   ) : (
-                    <Badge variant="outline">Sold</Badge>
+                    <Badge variant="outline" className="shrink-0">Sold</Badge>
                   )}
                 </CardTitle>
                 {datasetDescriptions[dataset.id] && (
-                  <div className="text-muted-foreground text-sm mt-1 line-clamp-2">{datasetDescriptions[dataset.id]}</div>
+                  <div className="text-muted-foreground text-xs md:text-sm mt-1 line-clamp-2">{datasetDescriptions[dataset.id]}</div>
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="text-sm">
+                  <div className="text-xs md:text-sm">
                     <span className="text-muted-foreground">IPFS Hash:</span>
-                    <p className="font-mono text-xs bg-muted p-1 rounded mt-1 break-all max-w-full truncate" title={dataset.ipfsHash}>
+                    <p className="font-mono text-xs bg-muted p-1 rounded mt-1 break-all" title={dataset.ipfsHash}>
                       {dataset.ipfsHash}
                     </p>
                   </div>
-                  <div className="text-sm">
+                  <div className="text-xs md:text-sm">
                     <span className="text-muted-foreground">Seller:</span>
                     <p className="font-mono text-xs">
                       {dataset.seller.slice(0, 6)}...{dataset.seller.slice(-4)}
@@ -159,9 +159,9 @@ export default function MarketPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{dataset.price} POL</span>
-                  <Button onClick={() => setSelectedDataset(dataset)}>View Details</Button>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <span className="text-xl md:text-2xl font-bold">{dataset.price} POL</span>
+                  <Button onClick={() => setSelectedDataset(dataset)} size="sm" className="w-full sm:w-auto">View Details</Button>
                 </div>
               </CardContent>
             </Card>

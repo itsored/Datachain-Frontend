@@ -72,12 +72,12 @@ export default function DashboardPage() {
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
-              <p className="text-muted-foreground">Connect your wallet to view your dashboard.</p>
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 md:mb-4">Connect Your Wallet</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Connect your wallet to view your dashboard.</p>
             </div>
           </CardContent>
         </Card>
@@ -86,13 +86,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-        <p className="text-muted-foreground">Manage your datasets, earnings, and rewards</p>
+    <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 md:mb-4">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage your datasets, earnings, and rewards</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Withdrawal</CardTitle>
@@ -155,10 +155,10 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="seller" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="seller">Seller View</TabsTrigger>
-          <TabsTrigger value="buyer">Buyer View</TabsTrigger>
+      <Tabs defaultValue="seller" className="space-y-4 md:space-y-6">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="seller" className="flex-1 sm:flex-initial">Seller View</TabsTrigger>
+          <TabsTrigger value="buyer" className="flex-1 sm:flex-initial">Buyer View</TabsTrigger>
         </TabsList>
 
         <TabsContent value="seller" className="space-y-6">
@@ -179,14 +179,14 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {ownedDatasets.map((dataset) => (
-                    <div key={dataset.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-semibold">Dataset #{dataset.id}</h3>
-                        <p className="text-sm text-muted-foreground font-mono">{dataset.ipfsHash}</p>
+                    <div key={dataset.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm md:text-base">Dataset #{dataset.id}</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{dataset.ipfsHash}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">{dataset.price} POL</p>
-                        <Badge variant="secondary">Active</Badge>
+                      <div className="text-left sm:text-right">
+                        <p className="font-bold text-sm md:text-base">{dataset.price} POL</p>
+                        <Badge variant="secondary" className="mt-1">Active</Badge>
                       </div>
                     </div>
                   ))}
@@ -211,16 +211,16 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {purchasedDatasets.map((purchase) => (
-                    <div key={purchase.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-semibold">Dataset #{purchase.id}</h3>
-                        <p className="text-sm text-muted-foreground">
+                    <div key={purchase.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm md:text-base">Dataset #{purchase.id}</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           Seller: {purchase.seller.slice(0, 6)}...{purchase.seller.slice(-4)}
                         </p>
                       </div>
-                      <div className="text-right space-y-2">
-                        <p className="font-bold">{purchase.price} POL</p>
-                        <Button size="sm" variant="secondary" onClick={() => openRatingModal(purchase.seller)}>
+                      <div className="text-left sm:text-right space-y-2 w-full sm:w-auto">
+                        <p className="font-bold text-sm md:text-base">{purchase.price} POL</p>
+                        <Button size="sm" variant="secondary" onClick={() => openRatingModal(purchase.seller)} className="w-full sm:w-auto">
                           Rate Seller
                         </Button>
                       </div>

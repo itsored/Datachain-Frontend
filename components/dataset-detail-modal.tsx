@@ -95,12 +95,12 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Dataset Details</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Dataset Details</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {metadata && (
             <Card>
               <CardHeader>
@@ -112,7 +112,7 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
               <CardContent className="space-y-4">
                 {metadata.description && <p className="text-muted-foreground">{metadata.description}</p>}
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 text-xs md:text-sm">
                   {metadata.category && (
                     <div>
                       <span className="font-medium">Category:</span> {metadata.category}
@@ -153,17 +153,17 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
               <CardTitle>Seller Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Address:</span>
-                <span className="font-mono text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs md:text-sm text-muted-foreground">Address:</span>
+                <span className="font-mono text-xs md:text-sm break-all">
                   {dataset.seller.slice(0, 6)}...{dataset.seller.slice(-4)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Reputation:</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs md:text-sm text-muted-foreground">Reputation:</span>
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm">{sellerReputation}/5</span>
+                  <Star className="h-3 w-3 md:h-4 md:w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs md:text-sm">{sellerReputation}/5</span>
                 </div>
               </div>
             </CardContent>
@@ -174,14 +174,14 @@ export function DatasetDetailModal({ dataset, open, onOpenChange }: DatasetDetai
               <CardTitle>Purchase Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-lg">
+              <div className="flex items-center justify-between text-base md:text-lg">
                 <span>Price:</span>
                 <span className="font-bold">{dataset.price} POL</span>
               </div>
 
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  IPFS Hash: <code className="bg-muted px-1 rounded">{dataset.ipfsHash}</code>
+              <div className="text-xs md:text-sm text-muted-foreground">
+                <p className="break-all">
+                  IPFS Hash: <code className="bg-muted px-1 rounded break-all">{dataset.ipfsHash}</code>
                 </p>
               </div>
 

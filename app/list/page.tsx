@@ -141,12 +141,12 @@ export default function ListDatasetPage() {
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 md:mb-4">Connect Your Wallet</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 You need to connect your wallet to list datasets on the marketplace.
               </p>
             </div>
@@ -157,10 +157,10 @@ export default function ListDatasetPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">List Your Dataset</h1>
-        <p className="text-muted-foreground">Share your AI training data with the community and earn rewards</p>
+    <div className="container mx-auto px-4 py-6 md:py-8 max-w-2xl">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 md:mb-4">List Your Dataset</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Share your AI training data with the community and earn rewards</p>
       </div>
 
       <Card>
@@ -231,7 +231,7 @@ export default function ListDatasetPage() {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="size">Dataset Size</Label>
                 <Input
@@ -295,10 +295,10 @@ export default function ListDatasetPage() {
               />
             </div>
 
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Preview</h3>
-              <div className="text-sm space-y-1">
-                <p>
+            <div className="bg-muted p-3 md:p-4 rounded-lg">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Preview</h3>
+              <div className="text-xs md:text-sm space-y-1">
+                <p className="break-words">
                   <span className="font-medium">Name:</span> {formData.name || "Not specified"}
                 </p>
                 <p>
