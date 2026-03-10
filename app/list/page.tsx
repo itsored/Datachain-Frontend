@@ -12,13 +12,7 @@ import { useMarketplace } from "@/hooks/useMarketplace"
 import { useWeb3Context } from "@/components/web3-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Upload } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { pinJSONToIPFS, pinFileToIPFS } from "@/lib/pinata"
 
 export default function ListDatasetPage() {
@@ -29,10 +23,13 @@ export default function ListDatasetPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    category: "",
+    modality: "",
+    sourceUrl: "",
+    license: "",
     size: "",
     samples: "",
     format: "",
+    taskTags: "",
     tags: "",
     price: "",
   })
@@ -61,33 +58,58 @@ export default function ListDatasetPage() {
 
     setLoading(true)
     try {
-      // Create mock IPFS hash based on form data
-      const metadata = {
-        name: formData.name,
-        description: formData.description,
-        category: formData.category,
-        size: formData.size,
-        samples: Number.parseInt(formData.samples) || 0,
-        format: formData.format,
-        tags: formData.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        timestamp: Date.now(),
-        seller: account,
-      }
-
-      let fileCid: string | undefined = undefined
+      let fileCid: string | undefined
       if (file) {
         fileCid = await pinFileToIPFS(file)
       }
 
-      // include fileCid if present
-      const metadataWithFile = { ...metadata, fileCid }
+      const qualitySignals = formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+      const taskTags = formData.taskTags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+      const sizeInfo = [formData.size, formData.samples ? `${formData.samples} samples` : ""]
+        .filter(Boolean)
+        .join("; ")
 
-      // Upload metadata to IPFS via Pinata
-      const ipfsHash = await pinJSONToIPFS(metadataWithFile)
+      const metadata = {
+        schema_version: "datachain.marketplace.dataset/v1",
+        listing_source: "manual_upload",
+        unlock_type: fileCid ? "file_download" : "metadata_and_source_link",
+        title: formData.name,
+        short_description: formData.description,
+        long_description: formData.description,
+        source_platform: "DataChain AI",
+        source_url: formData.sourceUrl,
+        license: formData.license || "unspecified",
+        license_verified: false,
+        modality: formData.modality ? [formData.modality] : [],
+        task_tags: taskTags,
+        domain_tags: [],
+        language_tags: [],
+        size_info: sizeInfo,
+        file_formats: formData.format ? [formData.format] : [],
+        maintainer_name: account,
+        maintainer_org: "",
+        access_type: "public",
+        commercial_use_possible: "unknown",
+        pii_risk: "unknown",
+        quality_signals: qualitySignals,
+        recommended_for_pilot: false,
+        manual_review_required: false,
+        notes: fileCid
+          ? "Seller uploaded a dataset file to IPFS for direct delivery."
+          : "This listing unlocks metadata and source-link access only.",
+        tags: qualitySignals,
+        seller_wallet: account,
+        file_cid: fileCid,
+        timestamp: Date.now(),
+      }
 
+      const ipfsHash = await pinJSONToIPFS(metadata)
       await listDataset(ipfsHash, formData.price)
 
       toast({
@@ -95,35 +117,33 @@ export default function ListDatasetPage() {
         description: "Your dataset is now available in the marketplace!",
       })
 
-      // Reset form
       setFormData({
         name: "",
         description: "",
-        category: "",
+        modality: "",
+        sourceUrl: "",
+        license: "",
         size: "",
         samples: "",
         format: "",
+        taskTags: "",
         tags: "",
         price: "",
       })
       setFile(null)
     } catch (error: any) {
-      // Log the raw error to browser console for easier debugging
-      // eslint-disable-next-line no-console
       console.error("LIST DATASET RAW ERROR →", error)
       let message = error?.message || "Failed to list dataset"
 
-      // Provide friendlier feedback for common issues
       switch (error?.code) {
         case "ACTION_REJECTED":
-        case 4001: // MetaMask user rejected request
+        case 4001:
           message = "Transaction rejected in wallet. Please approve the request to continue."
           break
         case "NETWORK_ERROR":
           message = "Network error: please check your RPC URL or that your node is running."
           break
         default:
-          // Attempt to detect JSON-RPC provider startup issue
           if (message.includes("failed to detect network")) {
             message = "Could not connect to the configured network. Is your RPC endpoint online?"
           }
@@ -196,29 +216,42 @@ export default function ListDatasetPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="modality">Modality</Label>
               <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                value={formData.modality}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, modality: value }))}
               >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select a category" />
+                <SelectTrigger id="modality">
+                  <SelectValue placeholder="Select a modality" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[
-                    "Computer Vision",
-                    "Natural Language Processing",
-                    "Audio",
-                    "Time Series",
-                    "Tabular",
-                    "Other",
-                  ].map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
+                  {["text", "image", "audio", "video", "tabular", "code", "multimodal"].map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sourceUrl">Source URL</Label>
+              <Input
+                id="sourceUrl"
+                value={formData.sourceUrl}
+                onChange={(e) => setFormData((prev) => ({ ...prev, sourceUrl: e.target.value }))}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="license">License</Label>
+              <Input
+                id="license"
+                value={formData.license}
+                onChange={(e) => setFormData((prev) => ({ ...prev, license: e.target.value }))}
+                placeholder="e.g., cc-by-4.0, apache-2.0"
+              />
             </div>
 
             <div className="space-y-2">
@@ -255,12 +288,22 @@ export default function ListDatasetPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Label htmlFor="taskTags">Task Tags (comma-separated)</Label>
+              <Input
+                id="taskTags"
+                value={formData.taskTags}
+                onChange={(e) => setFormData((prev) => ({ ...prev, taskTags: e.target.value }))}
+                placeholder="e.g., question answering, OCR, object detection"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags / Quality Signals (comma-separated)</Label>
               <Input
                 id="tags"
                 value={formData.tags}
                 onChange={(e) => setFormData((prev) => ({ ...prev, tags: e.target.value }))}
-                placeholder="e.g., images, classification, labeled"
+                placeholder="e.g., benchmark, labeled, multilingual"
               />
             </div>
 
@@ -271,8 +314,8 @@ export default function ListDatasetPage() {
                 type="file"
                 accept=".zip,.csv,.json,.txt,.tar,.gz"
                 onChange={(e) => {
-                  const f = e.target.files?.[0] || null
-                  setFile(f)
+                  const nextFile = e.target.files?.[0] || null
+                  setFile(nextFile)
                 }}
               />
               {file && (
@@ -283,14 +326,14 @@ export default function ListDatasetPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price (POL) *</Label>
+              <Label htmlFor="price">Price (dcUSDC) *</Label>
               <Input
                 id="price"
                 type="number"
                 step="0.001"
                 value={formData.price}
                 onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                placeholder="e.g., 0.1"
+                placeholder="e.g., 5"
                 required
               />
             </div>
@@ -299,13 +342,16 @@ export default function ListDatasetPage() {
               <h3 className="font-semibold mb-2 text-sm md:text-base">Preview</h3>
               <div className="text-xs md:text-sm space-y-1">
                 <p className="break-words">
-                  <span className="font-medium">Name:</span> {formData.name || "Not specified"}
+                  <span className="font-medium">Title:</span> {formData.name || "Not specified"}
                 </p>
                 <p>
-                  <span className="font-medium">Price:</span> {formData.price || "0"} POL
+                  <span className="font-medium">Price:</span> {formData.price || "0"} dcUSDC
                 </p>
                 <p>
-                  <span className="font-medium">Category:</span> {formData.category || "Not specified"}
+                  <span className="font-medium">Modality:</span> {formData.modality || "Not specified"}
+                </p>
+                <p>
+                  <span className="font-medium">License:</span> {formData.license || "unspecified"}
                 </p>
                 <p>
                   <span className="font-medium">Seller:</span> {account?.slice(0, 6)}...{account?.slice(-4)}

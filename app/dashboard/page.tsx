@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,24 +11,44 @@ import { useWeb3Context } from "@/components/web3-provider"
 import { RatingModal } from "@/components/rating-modal"
 import { useToast } from "@/hooks/use-toast"
 import { Wallet, Star, Gift, Database, Loader2 } from "lucide-react"
+import { buildMetadataMap, type MarketplaceMetadata } from "@/lib/marketplace-metadata"
 
 export default function DashboardPage() {
   const { isConnected, account } = useWeb3Context()
-  const { datasets, pendingWithdrawal, withdraw } = useMarketplace()
+  const {
+    allDatasets,
+    purchasedDatasets,
+    pendingWithdrawal,
+    paymentBalance,
+    withdraw,
+    claimPaymentFaucet,
+    paymentSymbol,
+  } = useMarketplace()
   const { pendingRewards, balance, claimReward, loading: rewardsLoading } = useIncentives()
   const { toast } = useToast()
 
   const [withdrawing, setWithdrawing] = useState(false)
+  const [claimingFaucet, setClaimingFaucet] = useState(false)
   const [ratingModalOpen, setRatingModalOpen] = useState(false)
   const [selectedSeller, setSelectedSeller] = useState<string | null>(null)
+  const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null)
+  const [metadataMap, setMetadataMap] = useState<Record<number, MarketplaceMetadata>>({})
 
-  // Mock purchased datasets (in a real app, this would come from events or subgraph)
-  const [purchasedDatasets] = useState([
-    { id: 1, seller: "0x1234567890123456789012345678901234567890", price: "0.1" },
-    { id: 2, seller: "0x0987654321098765432109876543210987654321", price: "0.05" },
-  ])
+  const ownedDatasets = allDatasets.filter((dataset) => dataset.seller.toLowerCase() === account?.toLowerCase())
 
-  const ownedDatasets = datasets.filter((dataset) => dataset.seller.toLowerCase() === account?.toLowerCase())
+  useEffect(() => {
+    if (allDatasets.length === 0) {
+      setMetadataMap({})
+      return
+    }
+
+    buildMetadataMap(allDatasets)
+      .then(setMetadataMap)
+      .catch((error) => {
+        console.error("Error loading dashboard metadata:", error)
+        setMetadataMap({})
+      })
+  }, [allDatasets])
 
   const handleWithdraw = async () => {
     setWithdrawing(true)
@@ -49,6 +69,25 @@ export default function DashboardPage() {
     }
   }
 
+  const handleClaimFaucet = async () => {
+    setClaimingFaucet(true)
+    try {
+      await claimPaymentFaucet()
+      toast({
+        title: "dcUSDC Claimed",
+        description: "Test payment tokens have been minted to your wallet",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Faucet Claim Failed",
+        description: error.message || "Failed to claim dcUSDC",
+        variant: "destructive",
+      })
+    } finally {
+      setClaimingFaucet(false)
+    }
+  }
+
   const handleClaimRewards = async () => {
     try {
       await claimReward()
@@ -65,8 +104,9 @@ export default function DashboardPage() {
     }
   }
 
-  const openRatingModal = (sellerAddress: string) => {
+  const openRatingModal = (sellerAddress: string, datasetId: number) => {
     setSelectedSeller(sellerAddress)
+    setSelectedDatasetId(datasetId)
     setRatingModalOpen(true)
   }
 
@@ -92,14 +132,14 @@ export default function DashboardPage() {
         <p className="text-sm sm:text-base text-muted-foreground">Manage your datasets, earnings, and rewards</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Withdrawal</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingWithdrawal} POL</div>
+            <div className="text-2xl font-bold">{pendingWithdrawal} {paymentSymbol}</div>
             <Button
               onClick={handleWithdraw}
               disabled={withdrawing || Number.parseFloat(pendingWithdrawal) === 0}
@@ -120,11 +160,31 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{paymentSymbol} Balance</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{paymentBalance} {paymentSymbol}</div>
+            <Button onClick={handleClaimFaucet} disabled={claimingFaucet} className="w-full mt-2" size="sm">
+              {claimingFaucet ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Claiming...
+                </>
+              ) : (
+                `Claim ${paymentSymbol}`
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Rewards</CardTitle>
             <Gift className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingRewards} POL</div>
+            <div className="text-2xl font-bold">{pendingRewards} RWD</div>
             <Button
               onClick={handleClaimRewards}
               disabled={rewardsLoading || Number.parseFloat(pendingRewards) === 0}
@@ -145,12 +205,12 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Reward Token Balance</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{balance} DCT</div>
-            <p className="text-xs text-muted-foreground mt-2">DataChain Tokens</p>
+            <div className="text-2xl font-bold">{balance} RWD</div>
+            <p className="text-xs text-muted-foreground mt-2">Reward tokens claimed from marketplace incentives</p>
           </CardContent>
         </Card>
       </div>
@@ -181,12 +241,17 @@ export default function DashboardPage() {
                   {ownedDatasets.map((dataset) => (
                     <div key={dataset.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm md:text-base">Dataset #{dataset.id}</h3>
-                        <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{dataset.ipfsHash}</p>
+                        <h3 className="font-semibold text-sm md:text-base">{metadataMap[dataset.id]?.title || `Dataset #${dataset.id}`}</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
+                          {metadataMap[dataset.id]?.shortDescription || dataset.ipfsHash}
+                        </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="font-bold text-sm md:text-base">{dataset.price} POL</p>
-                        <Badge variant="secondary" className="mt-1">Active</Badge>
+                        <p className="font-bold text-sm md:text-base">{dataset.price} {paymentSymbol}</p>
+                        <Badge variant={dataset.active ? "secondary" : "outline"} className="mt-1">
+                          {dataset.active ? "Active" : "Inactive"}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">Purchases: {dataset.purchaseCount}</p>
                       </div>
                     </div>
                   ))}
@@ -211,16 +276,28 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {purchasedDatasets.map((purchase) => (
-                    <div key={purchase.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
+                    <div key={`${purchase.datasetId}-${purchase.txHash}`} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm md:text-base">Dataset #{purchase.id}</h3>
+                        <h3 className="font-semibold text-sm md:text-base">
+                          {metadataMap[purchase.datasetId]?.title || `Dataset #${purchase.datasetId}`}
+                        </h3>
                         <p className="text-xs md:text-sm text-muted-foreground">
                           Seller: {purchase.seller.slice(0, 6)}...{purchase.seller.slice(-4)}
                         </p>
+                        {metadataMap[purchase.datasetId]?.sourcePlatform && (
+                          <p className="text-xs text-muted-foreground">
+                            Source: {metadataMap[purchase.datasetId]?.sourcePlatform}
+                          </p>
+                        )}
                       </div>
                       <div className="text-left sm:text-right space-y-2 w-full sm:w-auto">
-                        <p className="font-bold text-sm md:text-base">{purchase.price} POL</p>
-                        <Button size="sm" variant="secondary" onClick={() => openRatingModal(purchase.seller)} className="w-full sm:w-auto">
+                        <p className="font-bold text-sm md:text-base">{purchase.price} {paymentSymbol}</p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => openRatingModal(purchase.seller, purchase.datasetId)}
+                          className="w-full sm:w-auto"
+                        >
                           Rate Seller
                         </Button>
                       </div>
@@ -231,7 +308,12 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <RatingModal sellerAddress={selectedSeller} open={ratingModalOpen} onOpenChange={setRatingModalOpen} />
+          <RatingModal
+            sellerAddress={selectedSeller}
+            datasetId={selectedDatasetId}
+            open={ratingModalOpen}
+            onOpenChange={setRatingModalOpen}
+          />
         </TabsContent>
       </Tabs>
     </div>

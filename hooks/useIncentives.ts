@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { ethers } from "ethers"
-import { useWeb3 } from "./useWeb3"
+import { useWeb3Context } from "@/components/web3-provider"
 
 const INCENTIVES_ABI = [
   "function distributeReward(address user, uint256 amount)",
@@ -12,22 +12,39 @@ const INCENTIVES_ABI = [
   "event RewardDistributed(address indexed user, uint256 amount)",
   "event RewardClaimed(address indexed user, uint256 amount)",
 ]
+const TARGET_CHAIN_ID = Number.parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "0", 10)
+const IS_LOCALHOST = TARGET_CHAIN_ID === 31337
+const DEFAULT_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"
 
 export function useIncentives() {
-  const { provider, signer, account } = useWeb3()
+  const { signer, account } = useWeb3Context()
   const [pendingRewards, setPendingRewards] = useState("0")
   const [balance, setBalance] = useState("0")
   const [loading, setLoading] = useState(false)
 
   const incentivesAddress = process.env.NEXT_PUBLIC_INCENTIVES_ADDRESS!
+  const readProvider = useMemo(
+    () =>
+      new ethers.JsonRpcProvider(
+        DEFAULT_RPC,
+        TARGET_CHAIN_ID ? { chainId: TARGET_CHAIN_ID, name: process.env.NEXT_PUBLIC_NETWORK_NAME || "localhost" } : undefined,
+        { staticNetwork: true },
+      ),
+    [],
+  )
 
-  const getContract = useCallback(() => {
-    if (!provider || !incentivesAddress) return null
-    return new ethers.Contract(incentivesAddress, INCENTIVES_ABI, signer || provider)
-  }, [provider, signer, incentivesAddress])
+  const getReadContract = useCallback(() => {
+    if (!incentivesAddress) return null
+    return new ethers.Contract(incentivesAddress, INCENTIVES_ABI, readProvider)
+  }, [incentivesAddress, readProvider])
+
+  const getWriteContract = useCallback(() => {
+    if (!incentivesAddress || !signer) return null
+    return new ethers.Contract(incentivesAddress, INCENTIVES_ABI, signer)
+  }, [incentivesAddress, signer])
 
   const loadRewards = useCallback(async () => {
-    const contract = getContract()
+    const contract = getReadContract()
     if (!contract || !account) return
 
     try {
@@ -38,10 +55,10 @@ export function useIncentives() {
     } catch (error) {
       console.error("Error loading rewards:", error)
     }
-  }, [getContract, account])
+  }, [account, getReadContract])
 
   const claimReward = useCallback(async () => {
-    const contract = getContract()
+    const contract = getWriteContract()
     if (!contract || !signer) throw new Error("Wallet not connected")
 
     setLoading(true)
@@ -52,11 +69,11 @@ export function useIncentives() {
     } finally {
       setLoading(false)
     }
-  }, [getContract, signer, loadRewards])
+  }, [getWriteContract, signer, loadRewards])
 
   const distributeReward = useCallback(
     async (userAddress: string, amountInEth: string) => {
-      const contract = getContract()
+      const contract = getWriteContract()
       if (!contract || !signer) throw new Error("Wallet not connected")
 
       setLoading(true)
@@ -68,12 +85,14 @@ export function useIncentives() {
         setLoading(false)
       }
     },
-    [getContract, signer],
+    [getWriteContract, signer],
   )
 
   // Set up event listeners
   useEffect(() => {
-    const contract = getContract()
+    if (IS_LOCALHOST) return
+
+    const contract = getReadContract()
     if (!contract || !account) return
 
     const handleRewardDistributed = (user: string) => {
@@ -95,14 +114,14 @@ export function useIncentives() {
       contract.off("RewardDistributed", handleRewardDistributed)
       contract.off("RewardClaimed", handleRewardClaimed)
     }
-  }, [getContract, account, loadRewards])
+  }, [account, getReadContract, loadRewards])
 
   // Load initial data
   useEffect(() => {
-    if (provider && account) {
+    if (account) {
       loadRewards()
     }
-  }, [provider, account, loadRewards])
+  }, [account, loadRewards])
 
   return {
     pendingRewards,
