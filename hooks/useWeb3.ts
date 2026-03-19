@@ -10,6 +10,17 @@ declare global {
 import { useState, useEffect, useCallback, useRef } from "react"
 import { ethers } from "ethers"
 
+// Wait for MetaMask provider to be injected
+async function detectEthereumProvider(): Promise<any | null> {
+  if (typeof window === "undefined") return null
+  if (window.ethereum) return window.ethereum
+  return new Promise((resolve) => {
+    const handle = () => resolve(window.ethereum)
+    window.addEventListener("ethereum#initialized", handle, { once: true })
+    setTimeout(() => resolve(window.ethereum), 3000)
+  })
+}
+
 interface Web3State {
   provider: ethers.BrowserProvider | null
   signer: ethers.JsonRpcSigner | null
@@ -208,23 +219,31 @@ export function useWeb3() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.ethereum) {
+    let cancelled = false
+
+    const attemptReconnect = async () => {
+      const provider = await detectEthereumProvider()
+      if (cancelled || !provider) return
+
       const shouldReconnect = localStorage.getItem("connected") === "1"
-      if (shouldReconnect) {
-        // attempt to reconnect silently
-        ;(async () => {
-          try {
-            const accounts: string[] = await window.ethereum.request({
-              method: "eth_accounts",
-            })
-            if (accounts.length > 0) {
-              connect()
-            }
-          } catch (err: any) {
-            console.error("Auto connect error:", err)
-          }
-        })()
+      if (!shouldReconnect) return
+
+      try {
+        const accounts: string[] = await provider.request({
+          method: "eth_accounts",
+        })
+        if (accounts.length > 0) {
+          connect()
+        }
+      } catch (err: any) {
+        console.error("Auto connect error:", err)
       }
+    }
+
+    attemptReconnect()
+
+    return () => {
+      cancelled = true
     }
   }, [connect])
 
